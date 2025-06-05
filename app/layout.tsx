@@ -16,7 +16,7 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
 });
 
-// Metadata configuration
+// Metadata configuration - Simplified
 export const metadata: Metadata = {
   title: {
     template: "%s | Golf Pass",
@@ -41,28 +41,21 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://golfpass.io"),
-  alternates: {
-    canonical: "/",
-    languages: {
-      fr: "/fr",
-      en: "/en",
-    },
-  },
+  metadataBase: new URL("http://localhost:3000"), // Use localhost for development
   openGraph: {
     title: "Golf Pass - La plateforme premium de réservation de séjours golf",
     description:
       "Réservez des séjours golf premium dans les plus beaux parcours du monde.",
-    url: "https://golfpass.io",
+    url: "http://localhost:3000", // Use localhost for development
     siteName: "Golf Pass",
     locale: "fr_FR",
     type: "website",
     images: [
       {
-        url: "https://golfpass.io/og-image.jpg",
+        url: "/og-image.jpg", // Placeholder, replace with actual image path
         width: 1200,
         height: 630,
-        alt: "Golf Pass",
+        alt: "Golf Pass - Premium Golf Stays",
       },
     ],
   },
@@ -71,16 +64,16 @@ export const metadata: Metadata = {
     title: "Golf Pass - La plateforme premium de réservation de séjours golf",
     description:
       "Réservez des séjours golf premium dans les plus beaux parcours du monde.",
-    creator: "@GolfPassApp",
-    images: ["https://golfpass.io/twitter-image.jpg"],
+    // creator: "@GolfPassApp", // Optional: Add Twitter handle
+    images: ["/twitter-image.jpg"], // Placeholder, replace with actual image path
   },
 };
 
 // Viewport configuration
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#2a9d8f" },
-    { media: "(prefers-color-scheme: dark)", color: "#1d3557" },
+    { media: "(prefers-color-scheme: light)", color: "#2a9d8f" }, // Fairway Green for light mode
+    { media: "(prefers-color-scheme: dark)", color: "#1d3557" },  // Dark Blue for dark mode
   ],
   width: "device-width",
   initialScale: 1,
@@ -95,38 +88,30 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="fr"
+      lang="fr" // Content language is French
       className={`${inter.variable} ${playfair.variable} dark`}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 antialiased dark:from-dark-blue-950 dark:to-dark-blue-900 dark:text-gray-50">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={true}
-          disableTransitionOnChange={false}
-        >
+        <ThemeProvider defaultTheme="dark">
           <div className="relative flex min-h-screen flex-col">
-            {/* Header placeholder - will be implemented as a separate component */}
-            <header className="sticky top-0 z-40 w-full backdrop-blur-glassmorphic">
+            <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-white/5 backdrop-blur-glassmorphic dark:border-black/10 dark:bg-black/5">
               <div className="container mx-auto flex h-16 items-center justify-between px-4">
                 <div className="text-2xl font-bold text-fairway dark:text-fairway-400">
                   Golf Pass
                 </div>
                 <nav className="hidden md:block">
-                  {/* Navigation will be implemented as a separate component */}
+                  {/* Navigation links will go here */}
                 </nav>
                 <div className="flex items-center gap-4">
-                  {/* Auth and theme toggle will be implemented as separate components */}
+                  {/* Auth buttons and theme toggle will go here */}
                 </div>
               </div>
             </header>
 
-            {/* Main content */}
             <main className="flex-1">{children}</main>
 
-            {/* Footer placeholder - will be implemented as a separate component */}
-            <footer className="mt-auto border-t border-gray-200 bg-white bg-opacity-50 py-8 backdrop-blur-glassmorphic dark:border-dark-blue-700 dark:bg-dark-blue-800 dark:bg-opacity-50">
+            <footer className="mt-auto border-t border-white/10 bg-white/5 py-8 backdrop-blur-glassmorphic dark:border-black/10 dark:bg-black/5">
               <div className="container mx-auto px-4">
                 <div className="text-center text-sm text-gray-600 dark:text-gray-400">
                   © {new Date().getFullYear()} Golf Pass. Tous droits réservés.
