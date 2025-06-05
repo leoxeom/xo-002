@@ -1,0 +1,287 @@
+# Supabase Project Configuration for Golf Pass
+# Version: 1.0.0
+# Date: 2025-06-05
+
+# =============================================================================
+# PROJECT CONFIGURATION
+# =============================================================================
+[project]
+name = "golf-pass"
+organization_id = "org_golfpass"
+region = "eu-central-1"  # Europe (Frankfurt) pour conformité RGPD
+environment = "development"  # development, staging, production
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+[database]
+major_version = 15  # PostgreSQL 15
+pooler_mode = "transaction"  # transaction ou statement
+pooler_size = 5  # Taille du pool de connexions
+
+# Extensions PostgreSQL
+[database.extensions]
+pg_graphql = true
+pg_stat_statements = true
+pgcrypto = true
+pgjwt = true
+postgis = false  # Activé si besoin de géolocalisation
+pg_vector = true  # Pour les embeddings IA
+uuid-ossp = true
+
+# Paramètres PostgreSQL
+[database.parameters]
+max_connections = 100
+shared_buffers = "1GB"
+effective_cache_size = "3GB"
+maintenance_work_mem = "256MB"
+checkpoint_completion_target = 0.9
+random_page_cost = 1.1
+work_mem = "64MB"
+default_statistics_target = 100
+
+# Sauvegardes
+[database.backups]
+frequency = "daily"  # daily, weekly
+retention_period = 7  # jours
+time = "01:00"  # UTC
+
+# =============================================================================
+# AUTHENTICATION CONFIGURATION
+# =============================================================================
+[auth]
+site_url = "https://app.golfpass.io"
+additional_redirect_urls = ["https://staging.golfpass.io", "http://localhost:3000"]
+jwt_expiry = 3600  # 1 heure
+refresh_token_expiry = 604800  # 7 jours
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+
+# Providers OAuth
+[auth.external.google]
+enabled = true
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+auto_link = true
+
+[auth.external.apple]
+enabled = true
+client_id = "env(APPLE_CLIENT_ID)"
+secret = "env(APPLE_CLIENT_SECRET)"
+auto_link = true
+
+[auth.external.facebook]
+enabled = true
+client_id = "env(FACEBOOK_CLIENT_ID)"
+secret = "env(FACEBOOK_CLIENT_SECRET)"
+auto_link = true
+
+# Multi-Factor Authentication
+[auth.mfa]
+enabled = true
+default = false  # Optionnel par défaut
+friendly_name = "Golf Pass"
+
+# Email Auth
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+
+# Phone Auth (SMS)
+[auth.phone]
+enabled = true
+provider = "twilio"
+twilio_account_sid = "env(TWILIO_ACCOUNT_SID)"
+twilio_auth_token = "env(TWILIO_AUTH_TOKEN)"
+twilio_messaging_service_sid = "env(TWILIO_MESSAGING_SERVICE_SID)"
+
+# Organizations (Teams)
+[auth.organizations]
+enabled = true
+default_role = "member"
+auto_confirm = false
+
+# =============================================================================
+# STORAGE CONFIGURATION
+# =============================================================================
+[storage]
+enabled = true
+file_size_limit = "50MB"  # Limite par défaut
+
+# Buckets de stockage
+[storage.buckets.package-images]
+public = true
+file_size_limit = "10MB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp"]
+cache_control = "public, max-age=31536000"  # 1 an
+
+[storage.buckets.profile-avatars]
+public = true
+file_size_limit = "2MB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp"]
+cache_control = "public, max-age=604800"  # 1 semaine
+
+[storage.buckets.vendor-logos]
+public = true
+file_size_limit = "5MB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/svg+xml"]
+cache_control = "public, max-age=2592000"  # 30 jours
+
+[storage.buckets.kyc-documents]
+public = false
+file_size_limit = "10MB"
+allowed_mime_types = ["application/pdf", "image/png", "image/jpeg"]
+
+[storage.buckets.ar-models]
+public = true
+file_size_limit = "50MB"
+allowed_mime_types = ["model/gltf-binary", "model/gltf+json", "application/octet-stream"]
+cache_control = "public, max-age=31536000"  # 1 an
+
+# CORS pour Storage
+[storage.cors]
+allowed_origins = ["*"]
+allowed_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+allowed_headers = ["*"]
+max_age_seconds = 3600
+
+# =============================================================================
+# EDGE FUNCTIONS CONFIGURATION
+# =============================================================================
+[edge_functions]
+enabled = true
+runtime = "nodejs18.x"
+memory_size = 1024  # MB
+timeout = 10  # secondes
+env_vars = [
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "RESEND_API_KEY",
+  "OPENAI_API_KEY"
+]
+
+# Fonctions spécifiques
+[edge_functions.functions.stripe-webhook]
+verify_jwt = false  # Pas de vérification JWT pour les webhooks
+rate_limit = 100  # Requêtes par minute
+
+[edge_functions.functions.create-payment-intent]
+verify_jwt = true
+rate_limit = 20  # Requêtes par minute
+
+[edge_functions.functions.generate-recommendations]
+verify_jwt = true
+rate_limit = 10  # Requêtes par minute
+memory_size = 2048  # Plus de mémoire pour l'IA
+timeout = 20  # Plus de temps pour l'IA
+
+# =============================================================================
+# EMAIL CONFIGURATION
+# =============================================================================
+[email]
+provider = "resend"  # resend, sendgrid, mailgun
+sender_name = "Golf Pass"
+sender_email = "noreply@golfpass.io"
+
+# Configuration Resend
+[email.resend]
+api_key = "env(RESEND_API_KEY)"
+
+# Templates d'emails
+[email.templates.confirmation]
+subject = "Confirmez votre compte Golf Pass"
+template_id = "confirmation_template"
+
+[email.templates.reset_password]
+subject = "Réinitialisation de votre mot de passe Golf Pass"
+template_id = "reset_password_template"
+
+[email.templates.booking_confirmation]
+subject = "Confirmation de votre réservation Golf Pass"
+template_id = "booking_confirmation_template"
+
+[email.templates.magic_link]
+subject = "Votre lien de connexion Golf Pass"
+template_id = "magic_link_template"
+
+# =============================================================================
+# ANALYTICS CONFIGURATION
+# =============================================================================
+[analytics]
+enabled = true
+collection_mode = "detailed"  # basic, detailed
+retention_days = 90
+pii_compliant = true  # Conformité RGPD
+
+# Tracking
+[analytics.tracking]
+page_views = true
+api_requests = true
+errors = true
+performance = true
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+[security]
+# CORS pour API
+[security.cors]
+allowed_origins = ["https://app.golfpass.io", "https://staging.golfpass.io", "http://localhost:3000"]
+allowed_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
+allowed_headers = ["Authorization", "Content-Type", "X-Client-Info"]
+max_age_seconds = 3600
+expose_headers = ["Content-Range", "X-Content-Range"]
+
+# Rate Limiting
+[security.rate_limits]
+api = 100  # Requêtes par minute
+auth = 20   # Requêtes par minute
+storage = 50  # Requêtes par minute
+
+# JWT
+[security.jwt]
+secret = "env(JWT_SECRET)"
+algorithm = "HS256"
+auto_refresh = true
+
+# SSL/TLS
+[security.ssl]
+enforce = true
+hsts = true
+hsts_max_age = 31536000  # 1 an
+hsts_include_subdomains = true
+
+# =============================================================================
+# REALTIME CONFIGURATION
+# =============================================================================
+[realtime]
+enabled = true
+max_channels_per_client = 100
+message_size_limit = "256KB"
+
+# Canaux
+[realtime.channels]
+presence_enabled = true
+broadcast_enabled = true
+
+# =============================================================================
+# OBSERVABILITY
+# =============================================================================
+[observability]
+# Logs
+[observability.logs]
+level = "info"  # debug, info, warn, error
+retention_days = 30
+
+# Métriques
+[observability.metrics]
+enabled = true
+resolution = "1m"  # 1m, 5m, 1h
+retention_days = 90
+
+# Alertes
+[observability.alerts]
+error_rate_threshold = 5  # Pourcentage
+latency_threshold_ms = 1000  # Milliseconds

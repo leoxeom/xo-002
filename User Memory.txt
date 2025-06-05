@@ -1,0 +1,53 @@
+## Work Context
+*Role, background, and what the user focuses on regularly*
+
+**Role & Background:**
+- name: leo marchooo
+- role/title: 
+
+**Primary Focus:**
+- main repositories: PLANNER Suite, AI-based Webflow alternative
+- technical domains: Bubble no-code platform, AI app generation, Supabase, multi-tenant architectures, CMS systems
+
+## Development Environment
+*Personal dev setup and automation preferences*
+
+**Personal Development Setup:**
+- dev setup scripts: 
+
+**Automation Preferences:**
+- auto-PR creation: 
+- safe command approval: 
+
+## Communication Preferences
+*How responses should be structured and delivered*
+
+**Response Style:**
+- explanation depth: 
+- language preference: French
+
+## Workflow Patterns
+*How the user prefers to work and organize code*
+- Values comprehensive Product Requirements Documents (PRDs) for projects
+
+## Coding Style
+*Programming patterns and technical preferences that influence code generation*
+- Prefers working with no-code development platforms (Bubble, Webflow-like systems)
+- Interested in AI-assisted app and website generation through prompting
+- Prefers Supabase over PostgreSQL+Prisma for data persistence, authentication and storage
+- Prefers modern UI design including glassmorphism aesthetics
+
+## Writing Style
+*Documentation and text formatting preferences*
+
+## Personal Vocabulary
+*User-specific terminology, shortcuts, and tools*
+
+## Notes & Discoveries
+*Other stable facts that don't fit above categories*
+- Currently focused on creating effective prompts for Bubble's AI app generator
+- Has access to Bubble's AI guide documentation
+- Developing an AI-based NoCode platform that replicates Webflow functionality entirely via prompting
+- Project requirements: admin dashboard, CMS collection system like Webflow, static/dynamic pages, exportable design management, embed support
+- Working on Golf Pass - a luxury golf travel booking platform similar to Booking.com but specialized for golf trips
+- Golf Pass targets dual audiences: golf professionals selling packages and golf enthusiasts buying luxury travel experiences

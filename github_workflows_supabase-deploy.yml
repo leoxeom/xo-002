@@ -1,0 +1,355 @@
+name: Supabase Deploy
+
+on:
+  push:
+    branches:
+      - main  # Déploiement automatique sur l'environnement de développement
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/supabase-deploy.yml'
+  pull_request:
+    branches:
+      - main  # Tests et validation sur les PRs
+    paths:
+      - 'supabase/**'
+  release:
+    types: [published]  # Déploiement en production sur les releases
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environnement de déploiement'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  determine-environment:
+    name: Déterminer l'environnement
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      project_id: ${{ steps.set-env.outputs.project_id }}
+    steps:
+      - name: Déterminer l'environnement
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "release" ]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "environment=development" >> $GITHUB_OUTPUT
+          else
+            echo "environment=development" >> $GITHUB_OUTPUT
+          fi
+
+          if [ "${{ steps.set-env.outputs.environment }}" == "production" ]; then
+            echo "project_id=${{ secrets.SUPABASE_PROJECT_ID_PROD }}" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.set-env.outputs.environment }}" == "staging" ]; then
+            echo "project_id=${{ secrets.SUPABASE_PROJECT_ID_STAGING }}" >> $GITHUB_OUTPUT
+          else
+            echo "project_id=${{ secrets.SUPABASE_PROJECT_ID_DEV }}" >> $GITHUB_OUTPUT
+          fi
+
+  test:
+    name: Tests unitaires et d'intégration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase local
+        run: supabase start
+
+      - name: Run unit tests
+        run: pnpm test:unit
+
+      - name: Run integration tests
+        run: pnpm test:integration
+
+      - name: Stop Supabase local
+        if: always()
+        run: supabase stop
+
+  validate:
+    name: Validation des migrations et politiques RLS
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Valider la syntaxe SQL
+        run: |
+          for file in supabase/migrations/*.sql; do
+            echo "Validating $file..."
+            # Utilisation de pg_format pour vérifier la syntaxe SQL
+            cat $file | pg_format -c -
+            if [ $? -ne 0 ]; then
+              echo "❌ Erreur de syntaxe SQL dans $file"
+              exit 1
+            fi
+          done
+          echo "✅ Toutes les migrations SQL sont valides"
+
+      - name: Valider les politiques RLS
+        run: |
+          # Démarrer Supabase local pour tester les politiques RLS
+          supabase start
+          
+          # Script pour extraire et tester les politiques RLS
+          echo "Extraction et test des politiques RLS..."
+          supabase db reset
+          
+          # Vérifier que toutes les tables ont RLS activé
+          TABLES_WITHOUT_RLS=$(supabase db execute --command "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT IN (SELECT tablename FROM pg_catalog.pg_tables JOIN pg_catalog.pg_policies ON pg_tables.tablename = pg_policies.tablename WHERE schemaname = 'public');")
+          
+          if [ ! -z "$TABLES_WITHOUT_RLS" ]; then
+            echo "❌ Les tables suivantes n'ont pas de politiques RLS configurées:"
+            echo "$TABLES_WITHOUT_RLS"
+            exit 1
+          fi
+          
+          echo "✅ Toutes les tables ont des politiques RLS configurées"
+          
+          # Arrêter Supabase local
+          supabase stop
+
+      - name: Valider les Edge Functions
+        run: |
+          # Vérifier la syntaxe TypeScript des Edge Functions
+          for func_dir in supabase/functions/*/; do
+            if [ -f "$func_dir/index.ts" ]; then
+              echo "Validating $func_dir/index.ts..."
+              npx tsc --noEmit "$func_dir/index.ts"
+              if [ $? -ne 0 ]; then
+                echo "❌ Erreur TypeScript dans $func_dir/index.ts"
+                exit 1
+              fi
+            fi
+          done
+          echo "✅ Toutes les Edge Functions sont valides"
+
+  deploy:
+    name: Déploiement Supabase
+    runs-on: ubuntu-latest
+    needs: [determine-environment, validate]
+    environment: ${{ needs.determine-environment.outputs.environment }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Backup de la base de données avant déploiement
+        id: backup
+        run: |
+          timestamp=$(date +%Y%m%d%H%M%S)
+          backup_name="pre_deploy_backup_${timestamp}.sql"
+          echo "backup_name=$backup_name" >> $GITHUB_OUTPUT
+          
+          supabase db dump \
+            --db-url "${{ secrets.SUPABASE_DB_URL }}" \
+            --file "$backup_name"
+          
+          echo "✅ Sauvegarde de la base de données créée: $backup_name"
+
+      - name: Déployer les migrations
+        id: deploy-migrations
+        run: |
+          echo "Déploiement des migrations vers ${{ needs.determine-environment.outputs.environment }}..."
+          
+          supabase db push \
+            --project-ref "${{ needs.determine-environment.outputs.project_id }}" \
+            --password "${{ secrets.SUPABASE_DB_PASSWORD }}" \
+            --db-url "${{ secrets.SUPABASE_DB_URL }}"
+          
+          if [ $? -ne 0 ]; then
+            echo "❌ Échec du déploiement des migrations"
+            exit 1
+          fi
+          
+          echo "✅ Migrations déployées avec succès"
+
+      - name: Déployer les Edge Functions
+        id: deploy-functions
+        run: |
+          echo "Déploiement des Edge Functions vers ${{ needs.determine-environment.outputs.environment }}..."
+          
+          # Déployer toutes les fonctions
+          supabase functions deploy \
+            --project-ref "${{ needs.determine-environment.outputs.project_id }}" \
+            --no-verify-jwt
+          
+          if [ $? -ne 0 ]; then
+            echo "❌ Échec du déploiement des Edge Functions"
+            exit 1
+          fi
+          
+          echo "✅ Edge Functions déployées avec succès"
+
+      - name: Vérifier le déploiement
+        id: verify
+        run: |
+          echo "Vérification du déploiement..."
+          
+          # Vérifier que la base de données est accessible
+          supabase db execute \
+            --project-ref "${{ needs.determine-environment.outputs.project_id }}" \
+            --password "${{ secrets.SUPABASE_DB_PASSWORD }}" \
+            --command "SELECT version();"
+          
+          if [ $? -ne 0 ]; then
+            echo "❌ La base de données n'est pas accessible après le déploiement"
+            exit 1
+          fi
+          
+          # Vérifier que les Edge Functions sont accessibles
+          for func_dir in supabase/functions/*/; do
+            func_name=$(basename "$func_dir")
+            echo "Vérification de la fonction $func_name..."
+            
+            # Vérifier que la fonction existe
+            supabase functions list \
+              --project-ref "${{ needs.determine-environment.outputs.project_id }}" | grep "$func_name"
+            
+            if [ $? -ne 0 ]; then
+              echo "❌ La fonction $func_name n'est pas accessible après le déploiement"
+              exit 1
+            fi
+          done
+          
+          echo "✅ Déploiement vérifié avec succès"
+
+      - name: Sauvegarder les informations de déploiement pour rollback
+        if: success()
+        run: |
+          echo "backup_name=${{ steps.backup.outputs.backup_name }}" > deploy_info.txt
+          echo "environment=${{ needs.determine-environment.outputs.environment }}" >> deploy_info.txt
+          echo "project_id=${{ needs.determine-environment.outputs.project_id }}" >> deploy_info.txt
+          echo "deploy_time=$(date +%Y-%m-%d:%H:%M:%S)" >> deploy_info.txt
+          
+          # Sauvegarder le fichier pour une utilisation potentielle dans le job de rollback
+          mkdir -p /tmp/deploy_artifacts
+          cp deploy_info.txt /tmp/deploy_artifacts/
+          cp ${{ steps.backup.outputs.backup_name }} /tmp/deploy_artifacts/
+
+      - name: Upload des artefacts de déploiement
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: deploy-artifacts
+          path: /tmp/deploy_artifacts/
+          retention-days: 5
+
+  rollback:
+    name: Rollback en cas d'échec
+    runs-on: ubuntu-latest
+    needs: [determine-environment, deploy]
+    if: failure()
+    environment: ${{ needs.determine-environment.outputs.environment }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Télécharger les artefacts de déploiement
+        uses: actions/download-artifact@v3
+        with:
+          name: deploy-artifacts
+          path: /tmp/deploy_artifacts
+
+      - name: Restaurer la base de données
+        run: |
+          if [ -f "/tmp/deploy_artifacts/deploy_info.txt" ]; then
+            source /tmp/deploy_artifacts/deploy_info.txt
+            
+            echo "Restauration de la base de données à partir de $backup_name..."
+            
+            supabase db restore \
+              --project-ref "${{ needs.determine-environment.outputs.project_id }}" \
+              --password "${{ secrets.SUPABASE_DB_PASSWORD }}" \
+              --db-url "${{ secrets.SUPABASE_DB_URL }}" \
+              --file "/tmp/deploy_artifacts/$backup_name"
+            
+            if [ $? -ne 0 ]; then
+              echo "❌ Échec de la restauration de la base de données"
+              exit 1
+            fi
+            
+            echo "✅ Base de données restaurée avec succès"
+          else
+            echo "❌ Informations de déploiement non trouvées, impossible de restaurer"
+            exit 1
+          fi
+
+      - name: Notifier le rollback
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: deployments
+          SLACK_COLOR: danger
+          SLACK_ICON: https://supabase.com/favicon.ico
+          SLACK_TITLE: "⚠️ Rollback effectué sur ${{ needs.determine-environment.outputs.environment }}"
+          SLACK_MESSAGE: "Un rollback a été effectué suite à un échec de déploiement sur ${{ needs.determine-environment.outputs.environment }}. Veuillez vérifier les logs."
+          SLACK_FOOTER: "Golf Pass Deployment System"
+
+  notify:
+    name: Notification de déploiement
+    runs-on: ubuntu-latest
+    needs: [determine-environment, deploy]
+    if: always()
+    steps:
+      - name: Notification de succès
+        if: needs.deploy.result == 'success'
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: deployments
+          SLACK_COLOR: good
+          SLACK_ICON: https://supabase.com/favicon.ico
+          SLACK_TITLE: "✅ Déploiement réussi sur ${{ needs.determine-environment.outputs.environment }}"
+          SLACK_MESSAGE: "Les migrations et les Edge Functions ont été déployées avec succès sur l'environnement ${{ needs.determine-environment.outputs.environment }}."
+          SLACK_FOOTER: "Golf Pass Deployment System"
+
+      - name: Notification d'échec
+        if: needs.deploy.result == 'failure'
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: deployments
+          SLACK_COLOR: danger
+          SLACK_ICON: https://supabase.com/favicon.ico
+          SLACK_TITLE: "❌ Échec du déploiement sur ${{ needs.determine-environment.outputs.environment }}"
+          SLACK_MESSAGE: "Le déploiement des migrations et/ou des Edge Functions a échoué sur l'environnement ${{ needs.determine-environment.outputs.environment }}. Un rollback a été tenté."
+          SLACK_FOOTER: "Golf Pass Deployment System"
