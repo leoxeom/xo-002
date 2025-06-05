@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golf Pass - Design System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Palette de couleurs Golf Pass */
+            --fairway-green: #2a9d8f;
+            --light-green: #8ece9a;
+            --sand-beige: #e9c46a;
+            --luxury-gold: #f4a261;
+            --accent-red: #e76f51;
+            --sky-blue: #a8dadc;
+            --dark-blue: #1d3557;
+            --light-text: #f8f9fa;
+            --dark-text: #212529;
+            --glass-bg-light: rgba(255, 255, 255, 0.15);
+            --glass-bg-dark: rgba(29, 53, 87, 0.25);
+            --glass-border-light: rgba(255, 255, 255, 0.2);
+            --glass-border-dark: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            
+            /* Variables pour le mode clair par défaut */
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --text-primary: var(--dark-text);
+            --glass-bg: var(--glass-bg-light);
+            --glass-border: var(--glass-border-light);
+            --card-bg: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Mode sombre */
+        .dark-mode {
+            --bg-primary: #121212;
+            --bg-secondary: #1e1e1e;
+            --text-primary: var(--light-text);
+            --glass-bg: var(--glass-bg-dark);
+            --glass-border: var(--glass-border-dark);
+            --card-bg: rgba(29, 53, 87, 0.7);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Composant: Navigation avec glassmorphisme */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 5%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--fairway-green);
+        }
+
+        .logo i {
+            margin-right: 0.5rem;
+            color: var(--luxury-gold);
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-links li {
+            margin-left: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 500;
+            position: relative;
+            padding-bottom: 5px;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: var(--fairway-green);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 1.2rem;
+            margin-left: 2rem;
+        }
+
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Composant: Hero Section avec glassmorphisme */
+        .hero {
+            height: 100vh;
+            background-image: url('/api/placeholder/1920/1080');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 0 5%;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(42, 157, 143, 0.7), rgba(29, 53, 87, 0.7));
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            max-width: 800px;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            color: white;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Composant: Formulaire de recherche flottant */
+        .search-container {
+            position: relative;
+            z-index: 3;
+            margin-top: 2rem;
+        }
+
+        .search-form {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            padding: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            box-shadow: var(--glass-shadow);
+            transform: translateY(0);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .search-form:hover {
+            transform: translateY(-5px);
+        }
+
+        .search-input {
+            flex: 1 1 200px;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-btn {
+            padding: 0.8rem 2rem;
+            border-radius: 8px;
+            border: none;
+            background: var(--fairway-green);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .search-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(42, 157, 143, 0.4);
+        }
+
+        /* Composant: Cards de séjours golf avec effet de verre */
+        .packages-section {
+            padding: 8rem 5% 5rem;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: var(--fairway-green);
+        }
+
+        .packages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .package-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px) saturate(180%);
+            -webkit-backdrop-filter: blur(8px) saturate(180%);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--glass-shadow);
+            transition: transform 0.5s ease, box-shadow 0.5s ease;
+            position: relative;
+        }
+
+        .package-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .package-image {
+            height: 200px;
+            width: 100%;
+            object-fit: cover;
+        }
+
+        .package-content {
+            padding: 1.5rem;
+        }
+
+        .package-tag {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--luxury-gold);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .package-title {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .package-location {
+            display: flex;
+            align-items: center;
+            color: var(--text-primary);
+            opacity: 0.8;
+            margin-bottom: 1rem;
+        }
+
+        .package-location i {
+            margin-right: 0.5rem;
+            color: var(--accent-red);
+        }
+
+        .package-features {
+            display: flex;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            opacity: 0.8;
+        }
+
+        .feature i {
+            margin-right: 0.3rem;
+            color: var(--fairway-green);
+        }
+
+        .package-price {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.5rem;
+        }
+
+        .price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--fairway-green);
+        }
+
+        .price-period {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .book-btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            border: none;
+            background: var(--fairway-green);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .book-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(42, 157, 143, 0.4);
+        }
+
+        /* Composant: Palette de couleurs */
+        .colors-section {
+            padding: 5rem 5%;
+            background-color: var(--bg-secondary);
+        }
+
+        .colors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .color-card {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .color-preview {
+            height: 120px;
+            display: flex;
+            align-items: flex-end;
+            padding: 1rem;
+            color: white;
+            font-weight: 600;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-info {
+            padding: 1rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .color-name {
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+
+        .color-hex {
+            font-family: monospace;
+            opacity: 0.7;
+        }
+
+        /* Animations et Micro-interactions */
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ripple::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%, -50%);
+            transform-origin: 50% 50%;
+        }
+
+        .ripple:focus:not(:active)::after {
+            animation: ripple 1s ease-out;
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0);
+                opacity: 0.5;
+            }
+            20% {
+                transform: scale(25, 25);
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 0;
+                transform: scale(40, 40);
+            }
+        }
+
+        /* Media Queries pour Responsive Design */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+
+            .nav-links {
+                position: fixed;
+                top: 70px;
+                left: 0;
+                right: 0;
+                background: var(--glass-bg);
+                backdrop-filter: blur(12px) saturate(180%);
+                -webkit-backdrop-filter: blur(12px) saturate(180%);
+                flex-direction: column;
+                align-items: center;
+                padding: 2rem 0;
+                clip-path: circle(0% at 100% 0);
+                transition: clip-path 0.5s ease-in-out;
+            }
+
+            .nav-links.active {
+                clip-path: circle(150% at 100% 0);
+            }
+
+            .nav-links li {
+                margin: 1rem 0;
+            }
+
+            .mobile-toggle {
+                display: block;
+            }
+
+            .search-form {
+                flex-direction: column;
+                padding: 1.5rem;
+            }
+
+            .search-input {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .packages-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .colors-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation avec glassmorphisme -->
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fas fa-golf-ball-tee"></i>
+            Golf Pass
+        </div>
+        <ul class="nav-links">
+            <li><a href="#" class="ripple">Accueil</a></li>
+            <li><a href="#" class="ripple">Séjours</a></li>
+            <li><a href="#" class="ripple">Destinations</a></li>
+            <li><a href="#" class="ripple">Premium</a></li>
+            <li><a href="#" class="ripple">Contact</a></li>
+        </ul>
+        <div>
+            <button class="theme-toggle" id="theme-toggle">
+                <i class="fas fa-moon"></i>
+            </button>
+            <button class="mobile-toggle" id="mobile-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section avec glassmorphisme -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Découvrez des Expériences Golf Exceptionnelles</h1>
+            <p class="hero-subtitle">Réservez des séjours de golf premium dans les plus beaux parcours du monde</p>
+            
+            <!-- Formulaire de recherche flottant -->
+            <div class="search-container">
+                <form class="search-form floating">
+                    <input type="text" class="search-input" placeholder="Destination">
+                    <input type="date" class="search-input" placeholder="Date de départ">
+                    <input type="number" class="search-input" placeholder="Nombre de joueurs">
+                    <button type="submit" class="search-btn ripple">Rechercher</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cards de séjours golf avec effet de verre -->
+    <section class="packages-section">
+        <h2 class="section-title">Séjours Golf Recommandés</h2>
+        <div class="packages-grid">
+            <!-- Package Card 1 -->
+            <div class="package-card">
+                <span class="package-tag">Premium</span>
+                <img src="/api/placeholder/400/200" alt="Golf Resort" class="package-image">
+                <div class="package-content">
+                    <h3 class="package-title">Algarve Golf Retreat</h3>
+                    <div class="package-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Portugal, Algarve</span>
+                    </div>
+                    <div class="package-features">
+                        <div class="feature">
+                            <i class="fas fa-calendar"></i>
+                            <span>5 jours</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-flag"></i>
+                            <span>3 parcours</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-hotel"></i>
+                            <span>5 étoiles</span>
+                        </div>
+                    </div>
+                    <div class="package-price">
+                        <div>
+                            <span class="price">1 299 €</span>
+                            <span class="price-period">/personne</span>
+                        </div>
+                        <button class="book-btn ripple">Réserver</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Package Card 2 -->
+            <div class="package-card">
+                <img src="/api/placeholder/400/200" alt="Golf Resort" class="package-image">
+                <div class="package-content">
+                    <h3 class="package-title">Scottish Highlands Tour</h3>
+                    <div class="package-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Écosse, St Andrews</span>
+                    </div>
+                    <div class="package-features">
+                        <div class="feature">
+                            <i class="fas fa-calendar"></i>
+                            <span>7 jours</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-flag"></i>
+                            <span>5 parcours</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-hotel"></i>
+                            <span>4 étoiles</span>
+                        </div>
+                    </div>
+                    <div class="package-price">
+                        <div>
+                            <span class="price">1 899 €</span>
+                            <span class="price-period">/personne</span>
+                        </div>
+                        <button class="book-btn ripple">Réserver</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Package Card 3 -->
+            <div class="package-card">
+                <span class="package-tag">Exclusif</span>
+                <img src="/api/placeholder/400/200" alt="Golf Resort" class="package-image">
+                <div class="package-content">
+                    <h3 class="package-title">Dubai Luxury Golf</h3>
+                    <div class="package-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Émirats Arabes Unis, Dubai</span>
+                    </div>
+                    <div class="package-features">
+                        <div class="feature">
+                            <i class="fas fa-calendar"></i>
+                            <span>4 jours</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-flag"></i>
+                            <span>2 parcours</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-hotel"></i>
+                            <span>5 étoiles</span>
+                        </div>
+                    </div>
+                    <div class="package-price">
+                        <div>
+                            <span class="price">2 499 €</span>
+                            <span class="price-period">/personne</span>
+                        </div>
+                        <button class="book-btn ripple">Réserver</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Palette de couleurs -->
+    <section class="colors-section">
+        <h2 class="section-title">Palette de Couleurs Golf Pass</h2>
+        <div class="colors-grid">
+            <div class="color-card">
+                <div class="color-preview" style="background-color: #2a9d8f;">
+                    Fairway Green
+                </div>
+                <div class="color-info">
+                    <div class="color-name">Fairway Green</div>
+                    <div class="color-hex">#2a9d8f</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-preview" style="background-color: #8ece9a;">
+                    Light Green
+                </div>
+                <div class="color-info">
+                    <div class="color-name">Light Green</div>
+                    <div class="color-hex">#8ece9a</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-preview" style="background-color: #e9c46a;">
+                    Sand Beige
+                </div>
+                <div class="color-info">
+                    <div class="color-name">Sand Beige</div>
+                    <div class="color-hex">#e9c46a</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-preview" style="background-color: #f4a261;">
+                    Luxury Gold
+                </div>
+                <div class="color-info">
+                    <div class="color-name">Luxury Gold</div>
+                    <div class="color-hex">#f4a261</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-preview" style="background-color: #e76f51;">
+                    Accent Red
+                </div>
+                <div class="color-info">
+                    <div class="color-name">Accent Red</div>
+                    <div class="color-hex">#e76f51</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-preview" style="background-color: #1d3557;">
+                    Dark Blue
+                </div>
+                <div class="color-info">
+                    <div class="color-name">Dark Blue</div>
+                    <div class="color-hex">#1d3557</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Toggle du mode sombre
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        const themeIcon = themeToggle.querySelector('i');
+
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            if (body.classList.contains('dark-mode')) {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+            } else {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+            }
+        });
+
+        // Toggle du menu mobile
+        const mobileToggle = document.getElementById('mobile-toggle');
+        const navLinks = document.querySelector('.nav-links');
+
+        mobileToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            const isOpen = navLinks.classList.contains('active');
+            mobileToggle.querySelector('i').classList = isOpen ? 'fas fa-times' : 'fas fa-bars';
+        });
+
+        // Effet de ripple pour les boutons
+        const buttons = document.querySelectorAll('.ripple');
+        
+        buttons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                const x = e.clientX - e.target.getBoundingClientRect().left;
+                const y = e.clientY - e.target.getBoundingClientRect().top;
+                
+                const ripple = document.createElement('span');
+                ripple.style.left = `${x}px`;
+                ripple.style.top = `${y}px`;
+                ripple.classList.add('ripple-effect');
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+    </script>
+</body>
+</html>
