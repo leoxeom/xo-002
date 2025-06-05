@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   images: {
     domains: [
       'images.unsplash.com',
@@ -19,31 +18,14 @@ const nextConfig = {
     },
     // Optimize for glassmorphism effects
     optimizePackageImports: ['framer-motion'],
-    // For better performance with large datasets
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
     // For better DX
     typedRoutes: true,
   },
+  // For better performance with large datasets
+  serverExternalPackages: ['@supabase/supabase-js'],
   // Optimize for production builds
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
-  },
-  // Handle redirects for localization
-  async redirects() {
-    return [
-      {
-        source: '/',
-        has: [
-          {
-            type: 'header',
-            key: 'accept-language',
-            value: 'fr.*',
-          },
-        ],
-        destination: '/fr',
-        permanent: false,
-      },
-    ];
   },
   // Performance optimizations
   poweredByHeader: false,

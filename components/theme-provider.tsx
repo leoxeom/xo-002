@@ -1,153 +1,125 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
-import type { ThemeProviderProps as NextThemesProviderProps } from "next-themes/dist/types";
+"use client";
 
-// Define types for our theme context
-type Theme = "light" | "dark" | "system";
+import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-interface ThemeContextType {
-  theme: Theme | undefined;
-  setTheme: (theme: Theme) => void;
-  resolvedTheme: string | undefined;
-  isDark: boolean;
-  isLoading: boolean;
-  error: Error | null;
+type Theme = "light" | "dark";
+
+interface ThemeProviderProps {
+  children: ReactNode;
+  defaultTheme?: Theme;
+  storageKey?: string;
 }
 
-// Create context with default values
-const ThemeContext = createContext<ThemeContextType>({
-  theme: undefined,
-  setTheme: () => null,
-  resolvedTheme: undefined,
-  isDark: true, // Default to dark as per Golf Pass design system
-  isLoading: true,
-  error: null,
-});
+interface ThemeProviderState {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+  isDark: boolean;
+}
 
-// Custom hook to use the theme context
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  return context;
+const initialState: ThemeProviderState = {
+  theme: "dark", // Golf Pass default
+  setTheme: () => null,
+  isDark: true,
 };
+
+const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
-  ...props
-}: NextThemesProviderProps) {
-  const [error, setError] = useState<Error | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [mounted, setMounted] = useState<boolean>(false);
+  defaultTheme = "dark",
+  storageKey = "golfpass-theme",
+}: ThemeProviderProps) {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const storedTheme = window.localStorage.getItem(storageKey) as Theme | null;
+        if (storedTheme && (storedTheme === "light" || storedTheme === "dark")) {
+          return storedTheme;
+        }
+      } catch (e) {
+        console.error("Error reading theme from localStorage", e);
+      }
+    }
+    return defaultTheme;
+  });
 
-  // Fix for hydration mismatch
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
     setMounted(true);
-    setIsLoading(false);
   }, []);
 
-  // Custom setTheme function with error handling
-  const handleSetTheme = (newTheme: Theme) => {
-    try {
-      // Apply glassmorphism-specific adjustments based on theme
-      if (newTheme === "dark") {
-        document.documentElement.classList.add("dark");
+  useEffect(() => {
+    if (!mounted) return;
+
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(theme);
+
+    // Apply glassmorphism-specific adjustments based on theme
+    if (theme === "dark") {
         document.documentElement.style.setProperty(
-          "--glass-bg", 
+          "--glass-bg",
           "rgba(20, 20, 20, 0.1)"
         );
         document.documentElement.style.setProperty(
-          "--glass-border", 
+          "--glass-border",
           "rgba(20, 20, 20, 0.18)"
         );
         document.documentElement.style.setProperty(
-          "--glass-shadow", 
+          "--glass-shadow",
           "0 8px 32px 0 rgba(0, 0, 0, 0.25)"
         );
       } else {
-        document.documentElement.classList.remove("dark");
         document.documentElement.style.setProperty(
-          "--glass-bg", 
+          "--glass-bg",
           "rgba(255, 255, 255, 0.1)"
         );
         document.documentElement.style.setProperty(
-          "--glass-border", 
+          "--glass-border",
           "rgba(255, 255, 255, 0.18)"
         );
         document.documentElement.style.setProperty(
-          "--glass-shadow", 
+          "--glass-shadow",
           "0 8px 32px 0 rgba(31, 38, 135, 0.15)"
         );
       }
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("Failed to set theme"));
-      console.error("Error setting theme:", err);
-    }
-  };
 
-  // If not mounted yet, return null to avoid hydration mismatch
+    try {
+      window.localStorage.setItem(storageKey, theme);
+    } catch (e) {
+      console.error("Error saving theme to localStorage", e);
+    }
+  }, [theme, storageKey, mounted]);
+
+  const setTheme = (newTheme: Theme) => {
+    setThemeState(newTheme);
+  };
+  
+  const isDark = theme === "dark";
+
   if (!mounted) {
-    return null;
+    // To prevent hydration mismatch, render children directly or a placeholder
+    // until the client-side theme is determined.
+    // For simplicity here, we render children, but this might cause a flash
+    // if server-rendered HTML assumes a different theme.
+    // A better approach for SSR might involve a CSS variable on `<html>` set by a script.
+    return <>{children}</>;
   }
 
   return (
-    <NextThemesProvider
-      attribute="class"
-      defaultTheme="dark" // Golf Pass uses dark mode by default
-      enableSystem={true}
-      disableTransitionOnChange={false}
-      {...props}
-    >
-      <ThemeProviderInternal 
-        handleSetTheme={handleSetTheme} 
-        error={error}
-        isLoading={isLoading}
-      >
-        {children}
-      </ThemeProviderInternal>
-    </NextThemesProvider>
-  );
-}
-
-// Internal component to consume next-themes and provide our context
-function ThemeProviderInternal({
-  children,
-  handleSetTheme,
-  error,
-  isLoading,
-}: {
-  children: React.ReactNode;
-  handleSetTheme: (theme: Theme) => void;
-  error: Error | null;
-  isLoading: boolean;
-}) {
-  const { theme, setTheme, resolvedTheme } = useContext(NextThemesProvider.Context);
-  const isDark = resolvedTheme === "dark";
-
-  // Custom setTheme with error handling
-  const setThemeWithErrorHandling = (newTheme: Theme) => {
-    try {
-      setTheme(newTheme);
-      handleSetTheme(newTheme);
-    } catch (err) {
-      console.error("Failed to set theme:", err);
-    }
-  };
-
-  // Create the context value
-  const contextValue: ThemeContextType = {
-    theme: theme as Theme | undefined,
-    setTheme: setThemeWithErrorHandling,
-    resolvedTheme,
-    isDark,
-    isLoading,
-    error,
-  };
-
-  return (
-    <ThemeContext.Provider value={contextValue}>
+    <ThemeProviderContext.Provider value={{ theme, setTheme, isDark }}>
       {children}
-    </ThemeContext.Provider>
+    </ThemeProviderContext.Provider>
   );
 }
+
+export const useTheme = () => {
+  const context = useContext(ThemeProviderContext);
+
+  if (context === undefined) {
+    throw new Error("useTheme must be used within a ThemeProvider");
+  }
+
+  return context;
+};
